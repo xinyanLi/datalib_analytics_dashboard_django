@@ -9,7 +9,8 @@ app.controller("throughputController", function($scope, limitToFilter, $http, $l
 
 	$scope.initialize = function() {
 
-    $scope.baseURL = './proxy.php';
+    $scope.baseURL =  'http://127.0.0.1:8081/api/throughputs?format=jsonp';
+    //'http://datalib-analytics-api-dev.crowdx.co/api/throughputs/?callback=JSON_CALLBACK';
 
     $scope.filters = {
       from_date: '',
@@ -33,20 +34,26 @@ app.controller("throughputController", function($scope, limitToFilter, $http, $l
     $scope.load();    
   }
 	
+  initDates();
+
   /*
   * construct 3 lists [Conducted, Failed, Restricted] under filters 
   */
 	$scope.load = function() {   
     
     var url = $scope.baseURL;
-    url+='?';
+    url+='&';
     for (var key in $scope.filters) {
       if($scope.filters[key] !== '')
         if (key=='from_date' || key=="to_date") {
           var date = $scope.filters[key].split('-');
-          if(date.length == 3){
+          if(date.length == 3){           
             var new_date = date[0]+'/'+date[1]+'/'+date[2];
-            url = url.concat(key, '=', new Date(new_date).getTime(), '&');
+            if(key=="to_date") {
+              url = url.concat(key, '=', new Date(new_date).getTime()+24*60*60*1000, '&');
+            } else {
+              url = url.concat(key, '=', new Date(new_date).getTime(), '&');
+            }
           }
         } else {
         url = url.concat(key, '=', $scope.filters[key], '&');
@@ -54,24 +61,28 @@ app.controller("throughputController", function($scope, limitToFilter, $http, $l
     }
     
     console.log('base URL with filters  -->', url);
-    var url_1 = url+'type=CONDUCTED';
-    var url_2 = url+'type=FAILED';
-    var url_3 = url+'type=RESTRICTED';
+    var url_1 = url+'type=CONDUCTED&callback=JSON_CALLBACK';
+    var url_2 = url+'type=FAILED&callback=JSON_CALLBACK';
+    var url_3 = url+'type=RESTRICTED&callback=JSON_CALLBACK';
+    console.log('url_1 -->',url_1);
+    console.log('url_2 -->',url_2);
+    console.log('url_3 -->',url_3);    
 
-    $http.get(url_1).then(function(response){       // promise service			
+    $http.jsonp(url_1).then(function(response){       // promise service      
         $scope.conductedThroughputs = response.data;
         console.log('conductedThroughputs --> ',$scope.conductedThroughputs);
         $scope.loadedLists++;
+        return response.data;
     });
-    
-    $http.get(url_2).then(function(response){       // promise service      
+
+    $http.jsonp(url_2).then(function(response){       // promise service      
         $scope.failedThroughputs = response.data;
         console.log('failedThroughputs --> ',$scope.failedThroughputs);
         $scope.loadedLists++;
 
       });
 
-    $http.get(url_3).then(function(response){       // promise service      
+    $http.jsonp(url_3).then(function(response){       // promise service      
         $scope.restrictedThroughputs = response.data;
         console.log('restrictedThroughputs --> ',$scope.restrictedThroughputs);
         $scope.loadedLists++;
@@ -467,24 +478,78 @@ var getSubTypePairArray = function(throughputsList) {
     return pairList;
 }
 
+$('.date').datetimepicker({
+          //language:  'en',
+      linkFormat: 'yyyy-mm-dd',
+      weekStart: 1,
+      todayBtn:  1,
+      autoclose: 1,
+      todayHighlight: 1,
+      startView: 2,
+      forceParse: 0,
+      showMeridian: 0,
+          //pickTime: false,
+          //pickerPosition: 'top-right'
+});     
+
+var initDates = function() {
+  
+  var today = new Date();
+  var dd = today.getDate();
+  var mm = today.getMonth();
+  var yyyy = today.getFullYear();
+  console.log("today", dd+ '/' + (mm+1) + '/' + yyyy);
+  //$('#TO').datetimepicker('update', new Date(yyyy, mm, dd));
+  setTimeout(function() {
+      $('#TO').val( yyyy+'-'+(mm+1)+'-'+dd);
+      $('#FROM').val( yyyy+'-'+(mm+1)+'-'+(dd-7));     // change!!!
+  }, 200);  
+}
+
+var getTomorrow = function(today) {
+  var date = new Date('04/28/2013 00:00:00');
+  var yesterday = new Date(date.getTime() - 24*60*60*1000);
+  today = today[0]+'/'+today[1]+'/'+today[2];
+  var yesterday = new Date(today.getTime() - 24*60*60*1000);
+}
+
+var getDateRange = function() {
+
+  var from = $('#FROM').val();
+  from = from.split('-');
+  from[1] = from[1]-1;
+  var to = $('#TO').val();
+  to = to.split('-');
+  console.log('FROM', from);
+  var fromTS = Date.UTC(from[0], from[1], from[2]);
+  console.log('fromTS', fromTS);
+  var toTS = Date.UTC(to[0], to[1]-1, to[2]);
+  console.log('toTS', toTS);
+
+  // check 
+  if(fromTS>toTS) {
+    alert('Timeframe [from] should be no later than [to]');
+  }
+
+  var dates = [];
+  while(fromTS<=(toTS)) {
+    dates.push([Date.UTC(from[0], from[1], from[2]),0]);
+    fromTS += 24*60*60*1000;
+    from = new Date(fromTS);
+    from = [from.getFullYear(), from.getMonth(), from.getDate()]; 
+  }
+  console.log('DATEs =====> ',dates);
+  return dates;
+}
+
 var getDailyArray = function(throughputsList) {
   
-  var dateNumList = [//[Date.UTC(2014, 10, 4), 0],
-                  //[Date.UTC(2014, 10, 5), 0],
-                  [Date.UTC(2014, 10, 6), 0],
-                  [Date.UTC(2014, 10, 7), 0],
-                  [Date.UTC(2014, 10, 8), 0],
-                  [Date.UTC(2014, 10, 9), 0],
-                  [Date.UTC(2014, 10, 10), 0],
-                  [Date.UTC(2014, 10, 11), 0],
-                  [Date.UTC(2014, 10, 12), 0],
-                  [Date.UTC(2014, 10, 13), 0],
-                  [Date.UTC(2014, 10, 14), 0],
-                  //[Date.UTC(2014, 10, 15), 0]
-                  ];   // last date not show in chart
-  for (i=0; i<dateNumList.length-1; i++) {
+  var dateNumList = getDateRange();
+  for (i=0; i<dateNumList.length; i++) {
     for (j=0; j<throughputsList.length; j++) {
-        if (throughputsList[j].date >= dateNumList[i][0] && throughputsList[j].date < dateNumList[i+1][0]) {
+        if  (i==(dateNumList.length-1)) console.log('lastday',dateNumList[i]);
+        console.log(throughputsList[j].date);
+        if (throughputsList[j].date >= dateNumList[i][0] && throughputsList[j].date < (dateNumList[i][0]+24*60*60*1000)) {
             dateNumList[i][1]++; 
         }
       }
@@ -502,17 +567,3 @@ var getTotalDailyArray = function(a1, a2, a3) {
   }
   return total;
 }
-
-$('.date').datetimepicker({
-          //language:  'en',
-            linkFormat: 'yyyy-mm-dd',
-          weekStart: 1,
-          todayBtn:  1,
-      autoclose: 1,
-      todayHighlight: 1,
-      startView: 2,
-      forceParse: 0,
-          showMeridian: 0,
-          //pickTime: false,
-          //pickerPosition: 'top-right'
-      });     

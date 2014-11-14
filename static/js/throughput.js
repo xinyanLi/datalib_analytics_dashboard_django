@@ -9,7 +9,7 @@ app.controller("throughputController", function($scope, limitToFilter, $http, $l
 
 	$scope.initialize = function() {
 
-    $scope.baseURL = './proxy.php';
+    $scope.baseURL = 'http://datalib-analytics-api-dev.crowdx.co/api/throughputs/';
 
     $scope.filters = {
       from_date: '',

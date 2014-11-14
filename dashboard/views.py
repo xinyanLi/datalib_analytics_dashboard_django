@@ -1,8 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
-from wphp import PHPApp
-
 
 def is_member(user):
     if user:
