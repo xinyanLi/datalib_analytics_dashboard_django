@@ -9,8 +9,8 @@ app.controller("throughputController", function($scope, limitToFilter, $http, $l
 
 	$scope.initialize = function() {
 
-    $scope.baseURL =  'http://127.0.0.1:8081/api/throughputs?format=jsonp';
-    //'http://datalib-analytics-api-dev.crowdx.co/api/throughputs/?callback=JSON_CALLBACK';
+    //$scope.baseURL =  'http://127.0.0.1:8080/api/throughputs?format=jsonp';
+    $scope.baseURL = 'http://datalib-analytics-api-dev.crowdx.co/api/throughputs/?format=jsonp';
 
     $scope.filters = {
       from_date: '',
